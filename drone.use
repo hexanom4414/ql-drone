@@ -1,0 +1,178 @@
+
+model DroneLivraisonModel
+
+
+
+class SystemeDeLivraison 
+attributes
+	DNB : Integer
+	RNB : Integer
+	drones : Set(Drone)
+	receptacles : Set(Receptacle)
+	entrepot : Entrepot 
+end
+composition setOfDrones between
+	SystemeDeLivraison[1]
+	Drone[1..*] role drones
+end
+composition setOfReceptacles between
+	SystemeDeLivraison[1]
+	Receptacle[1..*] role receptacles
+end
+composition entrepot between
+	SystemeDeLivraison[1]
+	Entrepot[1]
+end
+constraints
+context SystemeDeLivraison inv invDNB : 
+	DNB = self.drones->size
+context SystemeDeLivraison inv invRNB :
+	RNB = self.receptacles->size
+
+
+class Drone 
+attributes
+	DCAP : Integer
+	DBatt : Integer
+	orderDelivered: Boolean
+	--cheminDrone : Chemin
+	status : String
+	--idCurrentPoint : Integer
+operations
+	move(idNextPoint : Integer)
+	pre est_voisin: 
+		self.position.voisins->includes(idNextPoint)
+	--pre est_libre: 
+		--self.position.voisins.forAll->select(v | v.id = idNextPoint).libre	
+	post batt :
+		self.DBatt = self.DBatt - 1
+
+	recup_command()
+	pre : 
+		self.commandeALivrer.volume <= self.DCAP
+	post capacity :
+		self.DCAP = self.DCAP - commandeALivrer.volume
+
+	deliver()
+	post delivered : 
+		self.orderDelivered = true
+
+	charge()
+	post batt: 
+		self.DBatt = self.DBatt + 1
+	
+	wait() -- skip
+end
+association commandToDeliver between
+	Drone[1]
+	Commande[1] role commandeALivrer
+end
+association currentPosition between
+	Drone[1]
+	Noeud[1] role position
+end
+constraints
+--initialisation de la charge a 3 ??? 
+context Drone inv maxBatt : self.DBatt <= 3
+context Drone inv positiveCapacity : self.DCAP >=0
+
+
+class Entrepot < Noeud 
+operations
+	calculerChemin(c : Commande)
+end
+constraints
+context Entrepot inv unSeulEntrepot: Entrepot.allInstances->size=1
+
+
+
+class Receptacle < Noeud
+attributes
+	RCAP : Integer
+	inDelivery : Boolean
+	batteryLoad : Boolean
+	--free : Boolean
+end 
+
+
+
+class Commande 
+attributes
+	volume : Integer
+end
+association itineraireCommande between
+	Commande[*]
+	Chemin[1] role itineraire
+end
+association receptacleAssocie between
+	Commande[*]
+	Receptacle[1] role adresseLivraison
+end
+constraints
+context Commande inv minVolume : self.volume >= 0
+context Commande inv departEntrepot : 
+	self.itineraire.depart.oclIsTypeOf(Entrepot)
+context Commande inv arriveeReceptacle :
+	self.itineraire.arrivee=self.adresseLivraison
+
+	
+class Troncon 
+attributes
+	length : Integer
+end 
+composition compositionTroncon between
+	Troncon [1]
+	Noeud [2] role noeuds
+end
+constraints
+context Troncon inv :self.length <=2
+
+
+class Chemin 
+attributes
+	depart : Noeud
+	arrivee : Noeud 
+	troncons : Set(Sequence(Troncon))
+end
+composition listTroncon between
+	Chemin[1..*] role chemin
+	Troncon[1..*] role troncons
+end
+
+
+class Noeud 
+attributes
+	posX : Integer
+	posY : Integer
+	id : Integer
+	libre : Boolean
+	voisins : OrderedSet(Integer) -- eg (14,15,2,4) voisin gauche : 14 , voisin haut: 15 , voisin droite : 2 , voisin bas : 4
+end
+association noeudVoisins between
+	Noeud[1]
+	Noeud[4] role voisins
+end
+
+
+--class NoeudVide < Noeud end
+
+
+
+class Grille
+attributes
+	noeuds : Set(Noeud)
+end 
+composition setOfNode between
+	Grille[1] role grille
+	Noeud[1..*] role noeuds
+end
+
+
+
+class Temps 
+operations
+	tictac()
+end
+
+
+

@@ -1,0 +1,16 @@
+procedure genWorld(nbDrone : Integer)
+var drones : Sequence(Drone),
+	receptacles : Sequence(Receptacle),
+	system : 	SystemeDeLivraison ,
+	entrepot : Entrepot;
+begin
+	system := Create(SystemeDeLivraison);
+	entrepot := Create(Entrepot);
+
+	drones := CreateN(Drone, [nbDrone]);
+
+
+	Try(setOfDrones, [system], [drones]);
+	Try(entrepot, [system], [entrepot]);
+end;
+
